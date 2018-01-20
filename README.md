@@ -394,8 +394,6 @@ plt.title('Sobel abs(CV_64F)'), plt.xticks([]), plt.yticks([])
 
 plt.show()
 ```
-
-
 ## Canny edge dector
 * http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_canny/py_canny.html
 ``` python
@@ -415,12 +413,135 @@ plt.show()
 
 ```
 
+## Fourier Transform in Numpy
+* http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_transforms/py_fourier_transform/py_fourier_transform.html
+```python
+ import cv2
+import numpy as np
+from matplotlib import pyplot as plt
 
+img = cv2.imread('messi5.jpg',0)
+f = np.fft.fft2(img)
+fshift = np.fft.fftshift(f)
+magnitude_spectrum = 20*np.log(np.abs(fshift))
 
+plt.subplot(121),plt.imshow(img, cmap = 'gray')
+plt.title('Input Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(122),plt.imshow(magnitude_spectrum, cmap = 'gray')
+plt.title('Magnitude Spectrum'), plt.xticks([]), plt.yticks([])
+plt.show()
+```
 
-## From scipy/scipy/ndimage/filters.py
+## attached to Fouier Transform in numpy
+* High Pass Filtering is an edge detection operation
+```python
+ows, cols = img.shape
+crow,ccol = rows/2 , cols/2
+fshift[crow-30:crow+30, ccol-30:ccol+30] = 0
+f_ishift = np.fft.ifftshift(fshift)
+img_back = np.fft.ifft2(f_ishift)
+img_back = np.abs(img_back)
+
+plt.subplot(131),plt.imshow(img, cmap = 'gray')
+plt.title('Input Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(132),plt.imshow(img_back, cmap = 'gray')
+plt.title('Image after HPF'), plt.xticks([]), plt.yticks([])
+plt.subplot(133),plt.imshow(img_back)
+plt.title('Result in JET'), plt.xticks([]), plt.yticks([])
+
+plt.show()
+```
+
+## Fourier Transform in OpenCV
+* http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_transforms/py_fourier_transform/py_fourier_transform.html
+
+```python
+import numpy as np
+import cv2
+from matplotlib import pyplot as plt
+
+img = cv2.imread('messi5.jpg',0)
+
+dft = cv2.dft(np.float32(img),flags = cv2.DFT_COMPLEX_OUTPUT)
+dft_shift = np.fft.fftshift(dft)
+
+magnitude_spectrum = 20*np.log(cv2.magnitude(dft_shift[:,:,0],dft_shift[:,:,1]))
+
+plt.subplot(121),plt.imshow(img, cmap = 'gray')
+plt.title('Input Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(122),plt.imshow(magnitude_spectrum, cmap = 'gray')
+plt.title('Magnitude Spectrum'), plt.xticks([]), plt.yticks([])
+plt.show()
+```
+
+* how to remove high frequency contents in the image
+```python
+rows, cols = img.shape
+crow,ccol = rows/2 , cols/2
+
+# create a mask first, center square is 1, remaining all zeros
+mask = np.zeros((rows,cols,2),np.uint8)
+mask[crow-30:crow+30, ccol-30:ccol+30] = 1
+
+# apply mask and inverse DFT
+fshift = dft_shift*mask
+f_ishift = np.fft.ifftshift(fshift)
+img_back = cv2.idft(f_ishift)
+img_back = cv2.magnitude(img_back[:,:,0],img_back[:,:,1])
+
+plt.subplot(121),plt.imshow(img, cmap = 'gray')
+plt.title('Input Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(122),plt.imshow(img_back, cmap = 'gray')
+plt.title('Magnitude Spectrum'), plt.xticks([]), plt.yticks([])
+plt.show()
+```
+
+# Gaussians for antialiasing when downsampling images
+* https://github.com/todddangerfarr/intro-to-computer-vision-with-python-opencv/blob/master/23_aliasing_in_images.py
+```python
+    # Aliasing in images occurs when the frequency is higher than the number of
+# pixels we have to represent that frequency in the image.  This results in
+# a misidentification of a signal frequency which introduces distortion or error
+
+# In particular this Python file shows how Guassian filtering can be used to
+# help solve this problem by removing the high frequencies prior to downsampling
+
+# imports
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+# read in and show the image
+img = cv2.imread('images/van_gogh.png')
+cv2.imshow('Van Gogh Original', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# First create a downsampling fucntion for the image
+def downsample(img, reduction_step=2):
+    height, width, channels = img.shape
+    rows_keep = range(0, height, reduction_step)
+    cols_keep = range(0, width, reduction_step)
+
+    ds_img = np.zeros((len(rows_keep), len(cols_keep), channels), dtype=np.uint8)
+    for i, row_value in enumerate(rows_keep):
+        for j, col_value in enumerate(cols_keep):
+            for k in range(channels):
+                ds_img[i, j, k] = img[row_value, col_value, k]
+
+    return ds_img
+
+# show images 
+vg_half_size = downsample(img, 2)
+vg_quarter_size = downsample(img, 4)
+cv2.imshow('1/2 Size', vg_half_size)
+cv2.imshow('1/4 Size', vg_quarter_size)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+# From scipy/scipy/ndimage/filters.py
 * https://github.com/scipy/scipy/blob/v0.15.1/scipy/ndimage/filters.py#L251
-
 
 ```python
 from __future__ import division, print_function, absolute_import
